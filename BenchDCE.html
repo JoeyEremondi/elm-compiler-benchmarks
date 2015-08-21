@@ -1130,7 +1130,6 @@ Elm.Native.Benchmark.make = function(localRuntime) {
 
 	var List = Elm.Native.List.make(localRuntime);
 	var Task = Elm.Native.Task.make(localRuntime);
-        var Signal = Elm.Signal.make(localRuntime);
         var Utils = Elm.Native.Utils.make(localRuntime);
 
         //Nothing special happens here, but we need to use it as a Native function
@@ -10097,11 +10096,39 @@ a) {
       return f(a);
    });
 });
+var runWithProgress = F2(function (maybeMailbox,
+suite) {
+   var ourTask = function () {
+      switch (maybeMailbox.ctor)
+      {case "Just":
+         return function (s) {
+              return A2($Task.andThen,
+              A2($Signal.send,
+              maybeMailbox._0.address,
+              s),
+              function (_v11) {
+                 var _ = _v11;
+                 return $Task.sleep(5 * $Time.second);
+              });
+           };
+         case "Nothing":
+         return function (_v12) {
+              var _ = _v12;
+              return $Task.sleep(0);
+           };}
+      _U.badCase($moduleName,
+      "bugs in reporting the exact location right now");
+   }();
+   return A2($Native$Benchmark.runWithProgress,
+   ourTask,
+   suite);
+});
 var Suite = F2(function (a,b) {
    return {ctor: "Suite"
           ,_0: a
           ,_1: b};
 });_elm.Benchmark.values = { _op : _op,
+runWithProgress : runWithProgress,
 bench1 : bench1,
 bench2 : bench2,
 bench3 : bench3,
@@ -11994,7 +12021,15 @@ _L.fromArray([A3($Benchmark.bench1,
              ,A3($Benchmark.bench1,
              "TodoMVC: approx. 330 simulated actions   ",
              $TodoBench.evalActions,
-             $TodoBench.testActions)]));_elm.Main.values = { _op : _op,
+             $TodoBench.testActions)]));
+var benchResults = Elm.Native.Task.make(_elm).perform(A2($Task.andThen,
+A2($Benchmark.runWithProgress,
+$Maybe.Just(results),
+mySuite),
+function (_v0) {
+   var _ = _v0;
+   return $Task.sleep(0);
+}));_elm.Main.values = { _op : _op,
 mySuite : mySuite,
 results : results,
 main : main,
@@ -12606,7 +12641,20 @@ $Debug = Elm.Debug.make(_elm),
 $List = Elm.List.make(_elm),
 $Maybe = Elm.Maybe.make(_elm),
 $Native$Signal = Elm.Native.Signal.make(_elm),
-$Task = Elm.Task.make(_elm);var mailbox = $Native$Signal.mailbox;
+$Task = Elm.Task.make(_elm);var send = F2(function (_v0,
+value) {
+   var _raw = _v0,
+   $ = _raw.ctor === "Address" ? _raw : _U.badCase($moduleName,
+   "bugs in reporting the exact location right now"),
+   actuallySend = $._0;
+   return A2($Task.onError,
+   actuallySend(value),
+   function (_v1) {
+      var _ = _v1;
+      return $Task.succeed({ctor: "_Tuple0"});
+   });
+});
+var mailbox = $Native$Signal.mailbox;
 var filterMap = $Native$Signal.filterMap;
 var filter = F3(function (isOk,
 base,
@@ -12626,7 +12674,8 @@ map2 : map2,
 constant : constant,
 filter : filter,
 filterMap : filterMap,
-mailbox : mailbox};
+mailbox : mailbox,
+send : send};
 return _elm.Signal.values;};Elm.SmallCtorBench = Elm.SmallCtorBench || {};
 Elm.SmallCtorBench.make = function(_elm){
 "use strict";
@@ -12973,7 +13022,14 @@ $moduleName = "Task",
 $List = Elm.List.make(_elm),
 $Maybe = Elm.Maybe.make(_elm),
 $Native$Task = Elm.Native.Task.make(_elm),
-$Result = Elm.Result.make(_elm);_elm.Task.values = { _op : _op};
+$Result = Elm.Result.make(_elm);var sleep = $Native$Task.sleep;
+var onError = $Native$Task.catch_;
+var andThen = $Native$Task.andThen;
+var succeed = $Native$Task.succeed;_elm.Task.values = { _op : _op,
+succeed : succeed,
+andThen : andThen,
+onError : onError,
+sleep : sleep};
 return _elm.Task.values;};Elm.Text = Elm.Text || {};
 Elm.Text.make = function(_elm){
 "use strict";
